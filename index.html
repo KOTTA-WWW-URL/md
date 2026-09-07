@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDテキストサイト</title>
+<style>
+  :root{
+    --bg:#1e1f24;
+    --panel:#26272e;
+    --panel2:#2c2e36;
+    --border:#3a3c46;
+    --text:#e8e8ec;
+    --muted:#9a9ba5;
+    --accent:#6c8cff;
+    --accent2:#4d6bef;
+    --code-bg:#1a1b20;
+    --quote:#3a3c46;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%;
+    margin:0;
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  #app{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+  }
+  header{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+    padding:10px 14px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+  }
+  header .title{
+    font-weight:700;
+    font-size:15px;
+    margin-right:8px;
+    color:var(--accent);
+    white-space:nowrap;
+  }
+  .filename{
+    color:var(--muted);
+    font-size:13px;
+    margin-right:auto;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  button{
+    background:var(--panel2);
+    color:var(--text);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:13px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  button:hover{ background:#33353f; }
+  button.primary{
+    background:var(--accent2);
+    border-color:var(--accent2);
+    color:#fff;
+  }
+  button.primary:hover{ background:#3d5adf; }
+  button.active{
+    background:var(--accent2);
+    border-color:var(--accent2);
+    color:#fff;
+  }
+  .divider{
+    width:1px;
+    align-self:stretch;
+    background:var(--border);
+    margin:0 4px;
+  }
+  .view-toggle{
+    display:flex;
+    gap:4px;
+    background:var(--panel2);
+    padding:3px;
+    border-radius:8px;
+    border:1px solid var(--border);
+  }
+  .view-toggle button{
+    border:none;
+    background:transparent;
+    border-radius:5px;
+  }
+  .view-toggle button.active{
+    background:var(--accent2);
+    color:#fff;
+  }
+  main{
+    flex:1;
+    display:flex;
+    min-height:0;
+  }
+  .pane{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .pane-label{
+    font-size:11px;
+    color:var(--muted);
+    padding:6px 14px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    letter-spacing:.05em;
+  }
+  #editor{
+    flex:1;
+    resize:none;
+    border:none;
+    outline:none;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"SFMono-Regular",Consolas,"Courier New",monospace;
+    font-size:14.5px;
+    line-height:1.7;
+    padding:16px 18px;
+    tab-size:2;
+  }
+  #preview{
+    flex:1;
+    overflow:auto;
+    padding:20px 26px;
+    background:var(--bg);
+    line-height:1.85;
+  }
+  .split main{ }
+  .vsep{
+    width:1px;
+    background:var(--border);
+  }
+  /* preview typography */
+  #preview h1,#preview h2,#preview h3,#preview h4{
+    color:#fff;
+    margin-top:1.3em;
+    margin-bottom:.5em;
+    line-height:1.4;
+  }
+  #preview h1{ font-size:1.9em; border-bottom:1px solid var(--border); padding-bottom:.3em;}
+  #preview h2{ font-size:1.5em; border-bottom:1px solid var(--border); padding-bottom:.25em;}
+  #preview h3{ font-size:1.25em; }
+  #preview h4{ font-size:1.1em; }
+  #preview p{ margin:.7em 0; }
+  #preview a{ color:var(--accent); text-decoration:none; }
+  #preview a:hover{ text-decoration:underline; }
+  #preview img{ max-width:100%; border-radius:6px; }
+  #preview code{
+    background:var(--code-bg);
+    padding:2px 6px;
+    border-radius:4px;
+    font-family:"SFMono-Regular",Consolas,"Courier New",monospace;
+    font-size:.9em;
+  }
+  #preview pre{
+    background:var(--code-bg);
+    padding:14px 16px;
+    border-radius:8px;
+    overflow:auto;
+    border:1px solid var(--border);
+  }
+  #preview pre code{
+    background:none;
+    padding:0;
+  }
+  #preview blockquote{
+    margin:.8em 0;
+    padding:.4em 1em;
+    border-left:4px solid var(--accent2);
+    background:var(--panel);
+    color:var(--muted);
+  }
+  #preview ul,#preview ol{
+    padding-left:1.6em;
+    margin:.6em 0;
+  }
+  #preview li{ margin:.25em 0; }
+  #preview hr{
+    border:none;
+    border-top:1px solid var(--border);
+    margin:1.6em 0;
+  }
+  #preview table{
+    border-collapse:collapse;
+    margin:.8em 0;
+    width:100%;
+  }
+  #preview th,#preview td{
+    border:1px solid var(--border);
+    padding:6px 10px;
+    text-align:left;
+  }
+  #preview th{
+    background:var(--panel);
+  }
+  #preview del{ color:var(--muted); }
+  #preview input[type=checkbox]{ margin-right:6px; }
+  #preview .task-line{ list-style:none; margin-left:-1.6em; padding-left:1.6em; }
+
+  /* modal (help) */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:24px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    width:min(720px,100%);
+    max-height:85vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 18px;
+    border-bottom:1px solid var(--border);
+  }
+  .modal-head h2{
+    margin:0;
+    font-size:16px;
+    color:var(--accent);
+  }
+  .modal-body{
+    overflow:auto;
+    padding:18px 22px;
+    font-size:14px;
+  }
+  .modal-body h3{
+    color:#fff;
+    font-size:14px;
+    margin:1.2em 0 .4em;
+    border-bottom:1px solid var(--border);
+    padding-bottom:.3em;
+  }
+  .modal-body h3:first-child{ margin-top:0; }
+  .rule-row{
+    display:flex;
+    gap:14px;
+    padding:6px 0;
+    border-bottom:1px dashed var(--border);
+    align-items:flex-start;
+  }
+  .rule-syntax{
+    flex:0 0 46%;
+    font-family:"SFMono-Regular",Consolas,"Courier New",monospace;
+    background:var(--code-bg);
+    padding:6px 8px;
+    border-radius:5px;
+    white-space:pre-wrap;
+    font-size:12.5px;
+    color:#c9d6ff;
+  }
+  .rule-desc{
+    flex:1;
+    color:var(--muted);
+    font-size:13px;
+    padding-top:4px;
+  }
+  .close-btn{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    font-size:20px;
+    cursor:pointer;
+    line-height:1;
+    padding:2px 6px;
+  }
+  .close-btn:hover{ color:var(--text); }
+
+  #fileInput{ display:none; }
+
+  @media (max-width:720px){
+    main.split{ flex-direction:column; }
+    .vsep{ width:auto; height:1px; }
+    header .title{ display:none; }
+    .rule-row{ flex-direction:column; }
+    .rule-syntax{ flex:none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="title">MDテキストサイト</span>
+    <button id="btnNew">新規作成</button>
+    <button id="btnOpen">開く</button>
+    <input type="file" id="fileInput" accept=".md,.markdown,.txt">
+    <button id="btnSave" class="primary">保存(.md)</button>
+    <button id="btnHelp">ヘルプ</button>
+    <span class="filename" id="filenameLabel">無題.md（未保存）</span>
+    <div class="view-toggle">
+      <button id="btnSplit" class="active" data-mode="split">分割</button>
+      <button id="btnEditOnly" data-mode="edit">入力のみ</button>
+      <button id="btnPreviewOnly" data-mode="preview">プレビューのみ</button>
+    </div>
+  </header>
+  <main id="main" class="split">
+    <div class="pane" id="editPane">
+      <div class="pane-label">入力</div>
+      <textarea id="editor" spellcheck="false" placeholder="# ここにMarkdownを入力してください"># サンプル見出し
+
+これは **Markdown** テキストサイトです。ここに文章を書くと、右側にプレビューが表示されます。
+
+- リストのサンプル
+- ヘルプボタンで書き方を確認できます
+
+詳しい書き方は上の「ヘルプ」ボタンから確認してください。</textarea>
+    </div>
+    <div class="vsep" id="vsep"></div>
+    <div class="pane" id="previewPane">
+      <div class="pane-label">プレビュー</div>
+      <div id="preview"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Markdown 書き方ルール一覧</h2>
+      <button class="close-btn" id="closeHelp">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <h3>見出し</h3>
+      <div class="rule-row"><div class="rule-syntax"># 見出し1
+## 見出し2
+### 見出し3
+#### 見出し4</div><div class="rule-desc">「#」の数で見出しレベルが変わります（1〜4対応、# の後は半角スペース）。</div></div>
+
+      <h3>文字装飾</h3>
+      <div class="rule-row"><div class="rule-syntax">**太字**</div><div class="rule-desc">アスタリスク2つで囲むと太字になります。</div></div>
+      <div class="rule-row"><div class="rule-syntax">*斜体* または _斜体_</div><div class="rule-desc">アスタリスク1つ、またはアンダースコアで囲むと斜体になります。</div></div>
+      <div class="rule-row"><div class="rule-syntax">~~取り消し線~~</div><div class="rule-desc">チルダ2つで囲むと取り消し線になります。</div></div>
+      <div class="rule-row"><div class="rule-syntax">`インラインコード`</div><div class="rule-desc">バッククォートで囲むと、コードのような等幅表示になります。</div></div>
+
+      <h3>リスト</h3>
+      <div class="rule-row"><div class="rule-syntax">- 項目1
+- 項目2
+  - 入れ子の項目</div><div class="rule-desc">「-」「*」「+」いずれかの後にスペースで箇条書き。行頭のスペースで入れ子（ネスト）にできます。</div></div>
+      <div class="rule-row"><div class="rule-syntax">1. 項目1
+2. 項目2</div><div class="rule-desc">数字＋ピリオドで番号付きリストになります。</div></div>
+      <div class="rule-row"><div class="rule-syntax">- [ ] 未完了タスク
+- [x] 完了タスク</div><div class="rule-desc">チェックボックス付きのタスクリストを作成できます。</div></div>
+
+      <h3>リンク・画像</h3>
+      <div class="rule-row"><div class="rule-syntax">[表示テキスト](https://example.com)</div><div class="rule-desc">角括弧にリンク文字、丸括弧にURLを書くとリンクになります。</div></div>
+      <div class="rule-row"><div class="rule-syntax">![代替テキスト](画像URL)</div><div class="rule-desc">先頭に「!」を付けると画像を表示します。</div></div>
+
+      <h3>引用</h3>
+      <div class="rule-row"><div class="rule-syntax">&gt; 引用文
+&gt; 複数行も可能</div><div class="rule-desc">行頭に「&gt;」を付けると引用ブロックになります。</div></div>
+
+      <h3>コードブロック</h3>
+      <div class="rule-row"><div class="rule-syntax">```
+複数行の
+コードブロック
+```</div><div class="rule-desc">バッククォート3つで前後を囲むと、複数行のコードブロックになります。</div></div>
+
+      <h3>区切り線</h3>
+      <div class="rule-row"><div class="rule-syntax">---
+または
+***</div><div class="rule-desc">ハイフン3つ以上、またはアスタリスク3つ以上の行で水平線（区切り線）を挿入します。</div></div>
+
+      <h3>表（テーブル）</h3>
+      <div class="rule-row"><div class="rule-syntax">| 見出し1 | 見出し2 |
+|---------|---------|
+| セルA   | セルB   |</div><div class="rule-desc">パイプ「|」で列を区切り、2行目の「---」で表のヘッダーを区切ります。</div></div>
+
+      <h3>改行・段落</h3>
+      <div class="rule-row"><div class="rule-syntax">1行目  
+2行目（行末に半角スペース2つ）</div><div class="rule-desc">行末に半角スペース2つで強制改行。空行を挟むと新しい段落になります。</div></div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const editor = document.getElementById('editor');
+  const preview = document.getElementById('preview');
+  const main = document.getElementById('main');
+  const editPane = document.getElementById('editPane');
+  const previewPane = document.getElementById('previewPane');
+  const vsep = document.getElementById('vsep');
+  const filenameLabel = document.getElementById('filenameLabel');
+  const fileInput = document.getElementById('fileInput');
+
+  let currentFileName = null; // null = 未保存の新規ファイル
+
+  /* ---------- Markdown -> HTML (簡易パーサ) ---------- */
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function inlineParse(text){
+    // コードスパンを先に退避
+    const codeStash = [];
+    text = text.replace(/`([^`]+?)`/g, (m, code) => {
+      codeStash.push(escapeHtml(code));
+      return `\u0000CODE${codeStash.length - 1}\u0000`;
+    });
+
+    // 画像
+    text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+      (m, alt, url, title) => `<img src="${url}" alt="${escapeHtml(alt)}"${title ? ` title="${escapeHtml(title)}"` : ''}>`);
+
+    // リンク
+    text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+      (m, label, url, title) => `<a href="${url}" target="_blank" rel="noopener"${title ? ` title="${escapeHtml(title)}"` : ''}>${label}</a>`);
+
+    // 太字
+    text = text.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/__([^_]+?)__/g, '<strong>$1</strong>');
+    // 斜体
+    text = text.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+    text = text.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
+    // 取り消し線
+    text = text.replace(/~~([^~]+?)~~/g, '<del>$1</del>');
+
+    // コードスパンを戻す
+    text = text.replace(/\u0000CODE(\d+)\u0000/g, (m, i) => `<code>${codeStash[i]}</code>`);
+
+    return text;
+  }
+
+  function parseMarkdown(src){
+    const lines = src.replace(/\r\n?/g, '\n').split('\n');
+    let html = '';
+    let i = 0;
+    let inCode = false;
+    let codeBuf = [];
+    let codeLang = '';
+    let listStack = []; // {type:'ul'|'ol', indent}
+    let inBlockquote = false;
+    let paraBuf = [];
+    let inTable = false;
+    let tableRows = [];
+
+    function closeParagraph(){
+      if(paraBuf.length){
+        html += `<p>${inlineParse(paraBuf.join(' '))}</p>\n`;
+        paraBuf = [];
+      }
+    }
+    function closeLists(){
+      while(listStack.length){
+        html += listStack.pop().type === 'ul' ? '</ul>\n' : '</ol>\n';
+      }
+    }
+    function closeBlockquote(){
+      if(inBlockquote){ html += '</blockquote>\n'; inBlockquote = false; }
+    }
+    function closeTable(){
+      if(inTable){
+        const [headerCells, , ...bodyRows] = tableRows;
+        html += '<table><thead><tr>' + headerCells.map(c => `<th>${inlineParse(c.trim())}</th>`).join('') + '</tr></thead><tbody>';
+        bodyRows.forEach(row => {
+          html += '<tr>' + row.map(c => `<td>${inlineParse(c.trim())}</td>`).join('') + '</tr>';
+        });
+        html += '</tbody></table>\n';
+        inTable = false;
+        tableRows = [];
+      }
+    }
+
+    function splitTableRow(line){
+      let t = line.trim();
+      if(t.startsWith('|')) t = t.slice(1);
+      if(t.endsWith('|')) t = t.slice(0, -1);
+      return t.split('|');
+    }
+
+    while(i < lines.length){
+      const line = lines[i];
+
+      // コードブロック
+      if(/^```/.test(line.trim())){
+        if(!inCode){
+          closeParagraph(); closeLists(); closeBlockquote(); closeTable();
+          inCode = true;
+          codeLang = line.trim().slice(3).trim();
+          codeBuf = [];
+        } else {
+          html += `<pre><code${codeLang ? ` class="language-${codeLang}"` : ''}>${escapeHtml(codeBuf.join('\n'))}</code></pre>\n`;
+          inCode = false;
+          codeLang = '';
+        }
+        i++; continue;
+      }
+      if(inCode){ codeBuf.push(line); i++; continue; }
+
+      // テーブル
+      if(/^\s*\|?.+\|.+\|?\s*$/.test(line) && lines[i+1] && /^\s*\|?[\s:|-]+\|[\s:|-]+\|?\s*$/.test(lines[i+1])){
+        closeParagraph(); closeLists(); closeBlockquote();
+        inTable = true;
+        tableRows = [splitTableRow(line), splitTableRow(lines[i+1])];
+        i += 2;
+        while(i < lines.length && /\|/.test(lines[i]) && lines[i].trim() !== ''){
+          tableRows.push(splitTableRow(lines[i]));
+          i++;
+        }
+        closeTable();
+        continue;
+      }
+
+      // 見出し
+      const h = line.match(/^(#{1,4})\s+(.*)$/);
+      if(h){
+        closeParagraph(); closeLists(); closeBlockquote();
+        const level = h[1].length;
+        html += `<h${level}>${inlineParse(h[2])}</h${level}>\n`;
+        i++; continue;
+      }
+
+      // 区切り線
+      if(/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line.trim())){
+        closeParagraph(); closeLists(); closeBlockquote();
+        html += '<hr>\n';
+        i++; continue;
+      }
+
+      // 引用
+      if(/^>\s?/.test(line)){
+        closeParagraph(); closeLists();
+        if(!inBlockquote){ html += '<blockquote>\n'; inBlockquote = true; }
+        html += `<p>${inlineParse(line.replace(/^>\s?/, ''))}</p>\n`;
+        i++; continue;
+      } else if(inBlockquote && line.trim() === ''){
+        closeBlockquote();
+      }
+
+      // タスクリスト / 箇条書き / 番号付きリスト
+      const task = line.match(/^(\s*)[-*+]\s+\[( |x|X)\]\s+(.*)$/);
+      const ul = line.match(/^(\s*)[-*+]\s+(.*)$/);
+      const ol = line.match(/^(\s*)\d+\.\s+(.*)$/);
+
+      if(task){
+        closeParagraph(); closeBlockquote();
+        if(!listStack.length || listStack[listStack.length-1].type !== 'ul'){
+          closeLists(); html += '<ul>\n'; listStack.push({type:'ul'});
+        }
+        const checked = task[2].toLowerCase() === 'x';
+        html += `<li class="task-line"><input type="checkbox" disabled${checked ? ' checked' : ''}> ${inlineParse(task[3])}</li>\n`;
+        i++; continue;
+      }
+      if(ul){
+        closeParagraph(); closeBlockquote();
+        if(!listStack.length || listStack[listStack.length-1].type !== 'ul'){
+          closeLists(); html += '<ul>\n'; listStack.push({type:'ul'});
+        }
+        html += `<li>${inlineParse(ul[2])}</li>\n`;
+        i++; continue;
+      }
+      if(ol){
+        closeParagraph(); closeBlockquote();
+        if(!listStack.length || listStack[listStack.length-1].type !== 'ol'){
+          closeLists(); html += '<ol>\n'; listStack.push({type:'ol'});
+        }
+        html += `<li>${inlineParse(ol[2])}</li>\n`;
+        i++; continue;
+      }
+      if(listStack.length && line.trim() === ''){
+        closeLists();
+      }
+
+      // 空行 -> 段落区切り
+      if(line.trim() === ''){
+        closeParagraph();
+        i++; continue;
+      }
+
+      // 通常段落（強制改行対応: 行末スペース2つ）
+      if(line.endsWith('  ')){
+        paraBuf.push(inlineParse(line.trimEnd()) + '<br>');
+        // 直接HTMLを積むためのフラグ的処理：あとでjoinするのでescape済みでないと二重処理される
+        // シンプルにするため、この行だけ特別扱い
+        paraBuf[paraBuf.length-1] = '\u0001' + paraBuf[paraBuf.length-1];
+      } else {
+        paraBuf.push(line);
+      }
+      i++;
+    }
+    closeParagraph(); closeLists(); closeBlockquote(); closeTable();
+    if(inCode){
+      html += `<pre><code>${escapeHtml(codeBuf.join('\n'))}</code></pre>\n`;
+    }
+
+    // 強制改行マーカーの後処理（簡易実装のため、段落結合時に既にinlineParse済みの断片が混ざる場合がある）
+    html = html.replace(/\u0001/g, '');
+
+    return html;
+  }
+
+  function render(){
+    preview.innerHTML = parseMarkdown(editor.value);
+  }
+  editor.addEventListener('input', render);
+  render();
+
+  /* ---------- 新規作成 ---------- */
+  document.getElementById('btnNew').addEventListener('click', () => {
+    if(editor.value.trim() !== '' && !confirm('編集中の内容は破棄されます。新規作成しますか？')) return;
+    editor.value = '';
+    currentFileName = null;
+    filenameLabel.textContent = '無題.md（未保存）';
+    render();
+  });
+
+  /* ---------- 開く ---------- */
+  document.getElementById('btnOpen').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      editor.value = ev.target.result;
+      currentFileName = file.name.replace(/\.[^.]+$/, '') + '.md';
+      filenameLabel.textContent = file.name;
+      render();
+    };
+    reader.readAsText(file, 'UTF-8');
+    fileInput.value = '';
+  });
+
+  /* ---------- 保存 (.md) ---------- */
+  document.getElementById('btnSave').addEventListener('click', () => {
+    const name = currentFileName || (prompt('ファイル名を入力してください', '無題.md') || '無題.md');
+    const finalName = name.endsWith('.md') ? name : name + '.md';
+    const blob = new Blob([editor.value], {type: 'text/markdown;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = finalName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    currentFileName = finalName;
+    filenameLabel.textContent = finalName;
+  });
+
+  /* ---------- 表示切り替え ---------- */
+  const viewButtons = {
+    split: document.getElementById('btnSplit'),
+    edit: document.getElementById('btnEditOnly'),
+    preview: document.getElementById('btnPreviewOnly')
+  };
+  function setMode(mode){
+    Object.values(viewButtons).forEach(b => b.classList.remove('active'));
+    viewButtons[mode].classList.add('active');
+    if(mode === 'split'){
+      editPane.style.display = 'flex';
+      previewPane.style.display = 'flex';
+      vsep.style.display = 'block';
+    } else if(mode === 'edit'){
+      editPane.style.display = 'flex';
+      previewPane.style.display = 'none';
+      vsep.style.display = 'none';
+    } else {
+      editPane.style.display = 'none';
+      previewPane.style.display = 'flex';
+      vsep.style.display = 'none';
+    }
+  }
+  viewButtons.split.addEventListener('click', () => setMode('split'));
+  viewButtons.edit.addEventListener('click', () => setMode('edit'));
+  viewButtons.preview.addEventListener('click', () => setMode('preview'));
+
+  /* ---------- ヘルプ ---------- */
+  const helpOverlay = document.getElementById('helpOverlay');
+  document.getElementById('btnHelp').addEventListener('click', () => helpOverlay.classList.add('open'));
+  document.getElementById('closeHelp').addEventListener('click', () => helpOverlay.classList.remove('open'));
+  helpOverlay.addEventListener('click', (e) => { if(e.target === helpOverlay) helpOverlay.classList.remove('open'); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') helpOverlay.classList.remove('open'); });
+
+})();
+</script>
+</body>
+</html>
