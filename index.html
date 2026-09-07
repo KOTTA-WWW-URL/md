@@ -622,6 +622,53 @@
   editor.addEventListener('input', render);
   render();
 
+  /* ---------- リスト自動継続 (Enterキー) ---------- */
+  editor.addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter') return;
+    const value = editor.value;
+    const cursor = editor.selectionStart;
+    if(editor.selectionStart !== editor.selectionEnd) return; // 範囲選択中は通常動作
+
+    const lineStart = value.lastIndexOf('\n', cursor - 1) + 1;
+    const currentLine = value.slice(lineStart, cursor);
+
+    const taskMatch = currentLine.match(/^(\s*)([-*+])\s+\[([ xX])\]\s?(.*)$/);
+    const ulMatch = currentLine.match(/^(\s*)([-*+])\s+(.*)$/);
+    const olMatch = currentLine.match(/^(\s*)(\d+)([.)])\s+(.*)$/);
+
+    let indent, marker, content, buildPrefix;
+
+    if(taskMatch){
+      indent = taskMatch[1]; content = taskMatch[4];
+      buildPrefix = `${indent}${taskMatch[2]} [ ] `;
+    } else if(olMatch){
+      indent = olMatch[1]; content = olMatch[4];
+      const nextNum = parseInt(olMatch[2], 10) + 1;
+      buildPrefix = `${indent}${nextNum}${olMatch[3]} `;
+    } else if(ulMatch){
+      indent = ulMatch[1]; content = ulMatch[3];
+      buildPrefix = `${indent}${ulMatch[2]} `;
+    } else {
+      return; // リスト行ではない -> 通常のEnter動作
+    }
+
+    e.preventDefault();
+
+    if(content.trim() === ''){
+      // 空のリスト項目でEnter -> リストを終了し、行の内容を空にする
+      const newValue = value.slice(0, lineStart) + value.slice(cursor);
+      editor.value = newValue;
+      editor.selectionStart = editor.selectionEnd = lineStart;
+    } else {
+      const insertText = '\n' + buildPrefix;
+      const newValue = value.slice(0, cursor) + insertText + value.slice(cursor);
+      editor.value = newValue;
+      const newPos = cursor + insertText.length;
+      editor.selectionStart = editor.selectionEnd = newPos;
+    }
+    render();
+  });
+
   /* ---------- 新規作成 ---------- */
   document.getElementById('btnNew').addEventListener('click', () => {
     if(editor.value.trim() !== '' && !confirm('編集中の内容は破棄されます。新規作成しますか？')) return;
