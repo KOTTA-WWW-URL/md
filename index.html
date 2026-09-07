@@ -622,6 +622,70 @@
   editor.addEventListener('input', render);
   render();
 
+  /* ---------- Tabキーでインデント揃え ---------- */
+  const TAB_UNIT = '  '; // 半角スペース2つ
+  editor.addEventListener('keydown', (e) => {
+    if(e.key !== 'Tab') return;
+    e.preventDefault();
+
+    const value = editor.value;
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+
+    // 選択範囲が複数行にまたがる場合は行単位でインデント/アウトデント
+    const selStart = value.lastIndexOf('\n', start - 1) + 1;
+    const multiLine = value.slice(start, end).includes('\n');
+
+    if(multiLine){
+      const selEnd = end;
+      const block = value.slice(selStart, selEnd);
+      const lines = block.split('\n');
+      let firstLineDelta = 0;
+      const newLines = lines.map((ln, idx) => {
+        if(e.shiftKey){
+          if(ln.startsWith(TAB_UNIT)){
+            if(idx === 0) firstLineDelta = -TAB_UNIT.length;
+            return ln.slice(TAB_UNIT.length);
+          } else if(ln.startsWith(' ')){
+            if(idx === 0) firstLineDelta = -1;
+            return ln.slice(1);
+          }
+          return ln;
+        } else {
+          if(idx === 0) firstLineDelta = TAB_UNIT.length;
+          return TAB_UNIT + ln;
+        }
+      });
+      const newBlock = newLines.join('\n');
+      editor.value = value.slice(0, selStart) + newBlock + value.slice(selEnd);
+      editor.selectionStart = start + firstLineDelta;
+      editor.selectionEnd = start + firstLineDelta + newBlock.length - (start - selStart);
+    } else if(e.shiftKey){
+      // 現在行の行頭インデントを1段階減らす
+      const lineEnd = value.indexOf('\n', start);
+      const lineText = value.slice(selStart, lineEnd === -1 ? value.length : lineEnd);
+      let removed = 0;
+      let newLineText = lineText;
+      if(lineText.startsWith(TAB_UNIT)){
+        removed = TAB_UNIT.length;
+        newLineText = lineText.slice(TAB_UNIT.length);
+      } else if(lineText.startsWith(' ')){
+        removed = 1;
+        newLineText = lineText.slice(1);
+      }
+      if(removed > 0){
+        editor.value = value.slice(0, selStart) + newLineText + value.slice(lineEnd === -1 ? value.length : lineEnd);
+        const newPos = Math.max(selStart, start - removed);
+        editor.selectionStart = editor.selectionEnd = newPos;
+      }
+    } else {
+      // カーソル位置にスペースを挿入して桁を揃える
+      editor.value = value.slice(0, start) + TAB_UNIT + value.slice(end);
+      editor.selectionStart = editor.selectionEnd = start + TAB_UNIT.length;
+    }
+    render();
+  });
+
   /* ---------- リスト自動継続 (Enterキー) ---------- */
   editor.addEventListener('keydown', (e) => {
     if(e.key !== 'Enter') return;
