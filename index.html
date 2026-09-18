@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>md_text</title>
+<title>MDテキストサイト</title>
 <style>
   :root{
     --bg:#1e1f24;
@@ -76,6 +76,15 @@
     border-color:var(--accent2);
     color:#fff;
   }
+  #stampName{
+    background:var(--panel2);
+    color:var(--text);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:7px 8px;
+    font-size:13px;
+  }
+  #stampName::placeholder{ color:var(--muted); }
   .divider{
     width:1px;
     align-self:stretch;
@@ -305,11 +314,13 @@
 <body>
 <div id="app">
   <header>
-    <span class="title">md_text</span>
+    <span class="title">MDテキストサイト</span>
     <button id="btnNew">新規作成</button>
     <button id="btnOpen">開く</button>
     <input type="file" id="fileInput" accept=".md,.markdown,.txt">
     <button id="btnSave" class="primary">保存(.md)</button>
+    <input type="text" id="stampName" placeholder="名前" style="width:90px;">
+    <button id="btnSaveStamp">名前+日時で保存</button>
     <button id="btnHelp">ヘルプ</button>
     <span class="filename" id="filenameLabel">無題.md（未保存）</span>
     <div class="view-toggle">
@@ -861,6 +872,36 @@
     URL.revokeObjectURL(url);
     currentFileName = finalName;
     filenameLabel.textContent = finalName;
+  });
+
+  /* ---------- 名前+日時で保存 ---------- */
+  document.getElementById('btnSaveStamp').addEventListener('click', () => {
+    const stampInput = document.getElementById('stampName');
+    const baseName = stampInput.value.trim();
+    if(!baseName){
+      alert('名前を入力してください');
+      stampInput.focus();
+      return;
+    }
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    const stampedName = `${baseName}_${yyyy}${mm}${dd},${hh}:${mi}.md`;
+
+    const blob = new Blob([editor.value], {type: 'text/markdown;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = stampedName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    currentFileName = stampedName;
+    filenameLabel.textContent = stampedName;
   });
 
   /* ---------- 表示切り替え ---------- */
