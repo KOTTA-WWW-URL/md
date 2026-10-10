@@ -832,6 +832,29 @@
     }
   });
 
+  /* ---------- 全角の ｚｈ/ｚｊ/ｚｋ/ｚｌ で ←↓↑→ を入力 ---------- */
+  const FULLWIDTH_ARROWS = { 'ｈ': '←', 'ｊ': '↓', 'ｋ': '↑', 'ｌ': '→' };
+  function convertFullWidthArrows(){
+    if(editor.selectionStart !== editor.selectionEnd) return;
+    const pos = editor.selectionStart;
+    if(pos < 2) return;
+    const value = editor.value;
+    const prev = value[pos - 2];
+    const last = value[pos - 1];
+    if((prev === 'ｚ' || prev === 'Ｚ') && FULLWIDTH_ARROWS[last]){
+      editor.value = value.slice(0, pos - 2) + FULLWIDTH_ARROWS[last] + value.slice(pos);
+      editor.selectionStart = editor.selectionEnd = pos - 1;
+      render();
+    }
+  }
+  editor.addEventListener('input', (e) => {
+    if(e.isComposing) return;
+    convertFullWidthArrows();
+  });
+  editor.addEventListener('compositionend', () => {
+    setTimeout(convertFullWidthArrows, 0);
+  });
+
   /* ---------- 新規作成 ---------- */
   document.getElementById('btnNew').addEventListener('click', () => {
     if(editor.value.trim() !== '' && !confirm('編集中の内容は破棄されます。新規作成しますか？')) return;
@@ -889,7 +912,7 @@
     const dd = String(now.getDate()).padStart(2, '0');
     const hh = String(now.getHours()).padStart(2, '0');
     const mi = String(now.getMinutes()).padStart(2, '0');
-    const stampedName = `${baseName}_${yyyy}${mm}${dd},${hh}:${mi}.md`;
+    const stampedName = `${baseName}_${yyyy}${mm}${dd}-${hh}${mi}.md`;
 
     const blob = new Blob([editor.value], {type: 'text/markdown;charset=utf-8'});
     const url = URL.createObjectURL(blob);
