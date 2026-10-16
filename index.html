@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>md_text</title>
+<title>MDテキストサイト</title>
 <style>
   :root{
     --bg:#1e1f24;
@@ -314,7 +314,7 @@
 <body>
 <div id="app">
   <header>
-    <span class="title">md_text</span>
+    <span class="title">MDテキストサイト</span>
     <button id="btnNew">新規作成</button>
     <button id="btnOpen">開く</button>
     <input type="file" id="fileInput" accept=".md,.markdown,.txt">
@@ -716,6 +716,31 @@
     render();
   });
 
+  /* ---------- 番号付きリストの後続番号を振り直す ---------- */
+  function renumberFollowing(text, pos, baseIndent, startNum){
+    const head = text.slice(0, pos);
+    const rest = text.slice(pos);
+    const nl = rest.indexOf('\n');
+    if(nl === -1) return text;
+    const firstSeg = rest.slice(0, nl);
+    const lines = rest.slice(nl + 1).split('\n');
+    let expected = startNum;
+    for(let k = 0; k < lines.length; k++){
+      const ln = lines[k];
+      if(ln.trim() === '') break;
+      const indentLen = ln.match(/^\s*/)[0].length;
+      if(indentLen > baseIndent) continue; // ネストした行は飛ばす
+      const m = ln.match(/^(\s*)\d+([.)])(\s+.*)$/);
+      if(indentLen === baseIndent && m){
+        lines[k] = m[1] + expected + m[2] + m[3];
+        expected++;
+      } else {
+        break;
+      }
+    }
+    return head + firstSeg + '\n' + lines.join('\n');
+  }
+
   /* ---------- リスト自動継続 (Enterキー) ---------- */
   editor.addEventListener('keydown', (e) => {
     if(e.key !== 'Enter') return;
@@ -755,7 +780,10 @@
       editor.selectionStart = editor.selectionEnd = lineStart;
     } else {
       const insertText = '\n' + buildPrefix;
-      const newValue = value.slice(0, cursor) + insertText + value.slice(cursor);
+      let newValue = value.slice(0, cursor) + insertText + value.slice(cursor);
+      if(olMatch && !taskMatch){
+        newValue = renumberFollowing(newValue, cursor + insertText.length, indent.length, parseInt(olMatch[2], 10) + 2);
+      }
       editor.value = newValue;
       const newPos = cursor + insertText.length;
       editor.selectionStart = editor.selectionEnd = newPos;
